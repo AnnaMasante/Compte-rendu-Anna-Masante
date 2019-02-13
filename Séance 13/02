@@ -1,0 +1,55 @@
+Séance du 13 février
+
+Aujourd'hui nous comptions faire tourner la Lune mais ce ne fut pas le cas.
+Pour commencer il a fallu fixer la tige entre deux planches de bois pour qu’elle ne bouge plus. Avec Sarah nous sommes allées dans l’atelier, pendant que Sarah tenait les 3 planches je faisait 4 trous qui allaient permettre de fixer la tige afin qu’elle ne bouge plus. 
+Après nous avions quelques problèmes avec le servomoteur car celui-ci se bloquait ou ne tournait pas correctement. Sarah a réglé le problème en fixant bien les fils qui gênaient la rotation.
+Pendant ce temps j’ai continué la partie code, il fallait que je realise une fonction “durée” qui donnait le nombre de jours entre deux dates et ainsi en faisant une simple division, la position de la plaque pour former les quartiers lunaires. Je n’ai pas réussi à trouver une librairie ou une fonction arduino qui m’aurait permit de réaliser cela, il a donc fallu que je la crée . C’était assez difficile et je ne suis pas sûre qu’elle renvoie le bon nombre de jours entre deux dates, je finirai cela pendant les vacances.
+Il faut savoir que comme le logiciel Arduino ne permettait de lire clairement le code, je l’ai réalisé sur un autre éditeur de texte, j’ai prévu de l’écrire en java pour pouvoir le tester rapidement 
+
+Exemple de code pour la fonction durée:
+
+boolean fevrier=false;
+int nbjour=0
+
+int duree( int j1, int m1, int a1, int j2, int m2,int a2){ 
+  if(a2<a1){
+//echangeons les dates 
+    int j;
+    j=j1;
+    j1=j2;
+    j2=j; //on a echangé les jours
+
+    int m;
+    m=m1;
+    m1=m2;
+    m2=m; //on a échangé les mois
+
+    int a;
+    a=a1;
+    a1=a2;
+    a2=a; //on a échangé les année
+  }
+  int i=1;
+  if(a1<a2){
+    nbjour+=jourparmois(m2,bissextile(a2))-j1;
+    while(m1<11){
+      nbjour=jourparmois(m1+1,bissextile(a1));
+      m1+=1;
+    }
+    while(a1<a2-1){ //si on rentre pas dans le while c'est qu'il reste moins d'un ans
+      while(i<11){
+        nbjour+=jourparmois(m2+1,bissextile(a2));
+        m2+=1;
+      }
+    a1+=1;
+    }//ici on est en a2
+    
+    while(i<m1){
+      nbjour+=jourparmois(i,bissextile(a1));
+      i+=1;
+    }
+    nbjour+=j1;
+    return  nbjour;
+
+  }
+ 
