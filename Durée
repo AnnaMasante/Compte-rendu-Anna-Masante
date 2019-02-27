@@ -1,0 +1,111 @@
+boolean fevrier=false;
+
+int duree( int j1, int m1, int a1, int j2, int m2,int a2){ 
+  int nbjour=0;
+  if(a2<a1){             //         27/02/2002           05/01/2000
+  //echangeons les dates 
+    int j;
+    j=j1;
+    j1=j2;
+    j2=j; //on a echangé les jours
+
+    int m;
+    m=m1;
+    m1=m2;
+    m2=m; //on a échangé les mois
+
+    int a;
+    a=a1;
+    a1=a2;
+    a2=a; //on a échangé les années
+  }
+ 
+  
+  if(a1<a2){
+    nbjour+=jourparmois(m1,bissextile(a1))-j1;
+    while(m1+1<=12){
+      nbjour+=jourparmois(m1+1,bissextile(a1));      
+      m1+=1;
+    }
+    
+    
+    while(a1+1<a2){ //si on rentre pas dans le while c'est qu'il reste moins d'un ans
+      int i=1;
+      while(i<=12){
+        nbjour+=jourparmois(i,bissextile(a1+1));
+        i+=1;
+      }
+      a1+=1;
+    }//ici on est en a2
+  
+    int j=1;
+    while(j<m2){
+      nbjour+=jourparmois(j,bissextile(a2));
+      j+=1;
+    }
+    nbjour+=j2;
+    return  nbjour;
+
+  }
+  
+  if(a1==a2){
+    if(m1>m2){
+      int j;
+      j=j1;
+      j1=j2;
+      j2=j; //on a echangé les jours
+
+      int m;
+      m=m1;
+      m1=m2;
+      m2=m; //on a échangé les mois  
+    }
+    if(m1<m2){
+      nbjour=jourparmois(m1,bissextile(a1))-j1;
+      while(m1+1<m2){ //on ne compte pas deux fois le même fois
+        nbjour+=jourparmois(m1+1,bissextile(a2));
+        m1+=1;
+      }
+      return nbjour+=j2; //plus qu'à rajouter la date du jour
+    }
+    if(m1==m2){
+      return nbjour=abs(j2-j1);
+    }
+  
+  }
+}
+
+  bool bissextile(int annee){
+   bool fevrier=false;
+    if(annee%4==0){ //divisible par 4, année bissextile
+      fevrier=true;
+    }
+    return fevrier;
+  }
+  
+  int jourparmois( int mois, boolean annee){
+    int jour=30;
+    if(mois==1 || mois==3||mois==5||mois==7||mois==8||mois==10||mois==12){ //mois à 31jours 
+        return jour=31;
+    }
+    
+    if (mois==2 && annee==true){
+       return jour=29;
+    }
+    if (mois==2 && annee==false){
+       return jour=28;
+    }
+    else{
+       return jour=30;
+    }
+  }
+
+  void setup(){
+    Serial.begin(9600);
+  }
+  
+  void loop(){
+    int i=duree(22,4,2018,2,7,2021);
+    Serial.println(i);
+    delay(2220);
+  }
