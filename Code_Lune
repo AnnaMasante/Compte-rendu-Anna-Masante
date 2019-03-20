@@ -1,12 +1,11 @@
 //temps
-#include <Wire.h>
 #include "RTClib.h"
 #include <Adafruit_NeoPixel.h>
 RTC_DS3231 rtc;
 
 //moteur pas à pas
 #include<Stepper.h> //bibliothèque du moteur
-const int nombrePas= 2048; //2048 corr à 1tour complet (1pas = 0.17° || 2048pas/360°) 24h = 2048 pas d'où 1h=85.34 pas 
+const int nombrePas = 2048; //2048 corr à 1tour complet (1pas = 0.17° || 2048pas/360°) 24h = 2048 pas d'où 1h=85.34 pas 
 Stepper monMoteur(nombrePas, 3, 5, 4, 6);
 
 
@@ -19,6 +18,7 @@ SoftwareSerial BlueT(RX,TX);
 char Data;
 
 //detecteur obstacle
+#include <Wire.h>
 int LED = 13; // Utilise la LED sur la plaque arduino
 int isObstaclePin = 7;  // input pin
 int isObstacle = HIGH;  // HIGH MEANS NO OBSTACLE
@@ -28,9 +28,15 @@ int red=0;
 int green=0;
 int blue=0;
 
- bool prem_heure;
- bool bouge;
+ 
+ bool bouge=false;
 
+  bool P=false;
+  bool D=false;
+  bool H=false;
+  bool R=false;
+
+  bool prem_heure=true;
 //////////////////////////////////////////////////////////////////////////////////
 
 void setup() {
@@ -38,10 +44,11 @@ void setup() {
   strip.begin();
   strip.show(); // Initialise toute les led à 'off'
 
+ // DateTime now = rtc.now();
+  
   rtc.begin();  //mettre l'heure
   rtc.adjust(DateTime(F(__DATE__), F(__TIME__))); //met à l'heure de l'ordi
-  //rtc.adjust(DateTime(2019, 2, 6, 15, 52, 0)); //06/02/2019 à 15:51
-
+ 
   monMoteur.setSpeed(15);//15 tour complet max par minute 
   
   pinMode(LED, OUTPUT);
@@ -49,85 +56,137 @@ void setup() {
   
   Serial.begin(9600);
   BlueT.begin(9600); 
-
-  bool prem_heure=true;
-  bool bouge=false;
+  
 }
 
 //////////////////////////////////////////////////////////////////////////////////
 
 void loop() {
-  DateTime now = now.hour();
-    
-  bool D=false;
-  bool H=false;
-  bool R=false;
-
-  if (BlueT.available()){
-    char Data = BlueT.read();
-    int nowheure=now.hour();
-    
-    if (Data=="P"){
-      isObstacle = digitalRead(isObstaclePin);
+  DateTime now = rtc.now();
+  int nowheure=now.hour();
+  prem_heure=true; //pour la présentation
+  
+  while (BlueT.available()){
+    Data = BlueT.read();
+    Serial.println(Data);
+    if (Data=='P' ){ //Cadran lunaire selon la date
+      D=false;
+      H=false;
+      R=false;
+      P=true;
+    }
+    if (Data=='D' ){ //Cadran lunaire selon la date
+      D=true;
+      H=false;
+      R=false;
+      P=false;
+    }
+    if (Data=='H'){ //Cadran lunaire selon l'heure ac lumières
+      D=false;
+      H=true;
+      R=false;
+      P=false;
+    }
+    if (Data=='R'){ //Réveil_DISCO
+      D=false;
+      H=false;
+      R=true;
+      P=false;
+    }
+    while (P==true){
+      D=false;
+      H=false;
+      R=false;
+      for(int i = 0; i < 10; i++ ) { // On fait une boucle pour définir la couleur de chaque led
+        strip.setPixelColor(i, 0, 50, 0); 
+      }
+      strip.show();
+      
+      isObstacle = digitalRead(isObstaclePin);      
       while(isObstacle==HIGH){ //tant qu'il n'y a pas d'obstacle
         digitalWrite(LED, LOW);
+        Serial.print("pas d'obstacle");
         isObstacle = digitalRead(isObstaclePin);
+        monMoteur.step(10);  //va à la position initiale ///////
       }
-    monMoteur.step(512);  //va à la position initiale //////////////////////////
+        monMoteur.step(nombrePas/24);  //va à la position initiale //////
+        delay(300);
+      P=false;
+    
     }
-    if (Data=="D" ){ //Cadran lunaire selon la date
-      bool D=true;
-      bool H=false;
-      bool R=false;
+    
+    while (D==true){
+      H=false;
+      R=false;
+      P=false;
+      for(int i = 0; i < 10; i++ ) { // On fait une boucle pour définir la couleur de chaque led
+        strip.setPixelColor(i, 0, 0,0);   
+      }    
+      for(int i = 0; i < 10; i++ ) { // On fait une boucle pour définir la couleur de chaque led
+        strip.setPixelColor(i, 50, 50,50); 
+      }
+      strip.show(); // on allume les leds
+     int jour=duree(6,3,2019,now.day(),now.month(),now.year())%29; 
+      monMoteur.step(jour*(nombrePas/29));
+      
+    
+    delay(100);
+    D=false;
     }
-    if (Data=="H"){ //Cadran lunaire selon l'heure ac lumières
-      bool D=false;
-      bool H=true;
-      bool R=false;
-    }
-    if (Data=="R"){ //Réveil_DISCO
-      bool D=false;
-      bool H=false;
-      bool R=true;
-    }
-    if (D==true){
-      float jour=duree(4,2,2019,now.day(),now.month(),now.year()); ////////////à compléter
-      monMoteur.step(jour*(2048/29.5));
-    }
-    if (H==true){
-      float nouvheure=nowheure+1;
-      if (prem_heure==true){
-          monMoteur.step(nowheure*(2048/24));
-          nowheure=nouvheure;
+                    
+    while (H==true){
+      D=false;
+      P=false;
+      R=false;
+      
+      if(now.hour()<=12){        
+        for(int i = 0; i < 10; i++ ) { // On fait une boucle pour définir la couleur de chaque led
+          strip.setPixelColor(i, now.hour(), now.hour()/4, 1/(now.hour()+1));       
+        }
+        strip.show(); // on allume les leds
+        delay(100);
+      }
+      if(now.hour()<=24 && now.hour()>12){
+        for(int i = 0; i < 10; i++ ) { // On fait une boucle pour définir la couleur de chaque led
+        strip.setPixelColor(i, 10/(now.hour()+1), now.hour()/4, now.hour());       
+        }
+        strip.show(); // on allume les leds
+        delay(100);
+      }
+      if (now.minute()==0 && now.second()==0){ //avance d'une heure        
+        Serial.println("bouge");        
+        monMoteur.step(nombrePas/24);
+        
+      }
+      if (prem_heure==true){ //cas initial avance de tant d'heure
+          monMoteur.step(now.hour()*(2048/24));
+          Serial.println(now.hour());
           bouge=false;
           prem_heure=false;
       }
-      if (nouvheure==nowheure && now.minute()==0 && now.second()==0){
-        bouge=true;
+      Data = BlueT.read();
+      if (Data=='P' || Data=='R' || Data=='D'){
+        H=false;
       }
-      if (bouge){
-        bouge=false;
-        monMoteur.step(2048/24);
-        nouvheure=nouvheure+1;
-      }
-       
-      /*if (heure!=now
-      if(now.minute==0 && now.second==0){
-        monMoteur.step(nombrePas/24);  
-      }*/
     }
-    if (R==true){ //MEt les led en mode DISCO
-    Serial.println("&aaaaaaaaaaaaaaa");
-      
+  while(R==true){ //Met les led en mode DISCO
       for(int i = 0; i < 10; i++ ) { // On fait une boucle pour définir la couleur de chaque led
-        // setPixelColor(n° de led, Rouge, Vert, Bleu)
-        strip.setPixelColor(i, random(0, 223), random(0, 223), random(0, 223));       
+         // setPixelColor(n° de led, Rouge, Vert, Bleu)
+        strip.setPixelColor(i, random(0,220), random(0,220),random(0,220));       
       }
-    strip.show(); // on affiche 
+    strip.show(); // on allume les leds
     delay(100);
+    Data = BlueT.read();
+    if (Data=='H' || Data=='P' || Data=='D'){
+        R=false;
+       
     }
-  }
-}
+ }
+  
+ }
+} 
+
+  
 
 /////////////////////////////////////////////////////////////////////////////////
 
